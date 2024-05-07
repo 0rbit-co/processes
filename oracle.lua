@@ -51,6 +51,14 @@ function isGetRequest(Msg)
     end
 end
 
+function isPostRequest(Msg)
+    if Msg.From == _TOKEN_PROCESS and Msg.Action == "Credit-Notice" and Msg["X-Action"] == "Post-Real-Data" then
+        return true
+    else
+        return false
+    end
+end
+
 function isValidUrl(url)
     -- This pattern checks for the following format: scheme://domain/path?query#fragment
     local pattern = "^(https):\\/\\/[^ \"]+$"
@@ -105,22 +113,7 @@ Handlers.add('getData',
             return
         end
 
-        -- -- check url
-        -- if not isValidUrl(url) then
-        --     Send({
-        --         Target = sender,
-        --         Data = Colors.red ..
-        --             "ERROR: URL sent is not valid"
-        --     })
-        --     Send({
-        --         Target = _TOKEN_PROCESS,
-        --         Action = "Transfer",
-        --         Recipient = sender,
-        --         Quantity = utils.toBalanceValue(recievedFee)
-        --     })
-        --     return
-        -- end
-        -- -- Check maxFee with Quantity
+        -- Check maxFee with Quantity
         if utils.lt(recievedFee, maxFee) then
             Send({
                 Target = sender,
@@ -232,6 +225,108 @@ Handlers.add(
     end
 )
 
+-- [[ Create Handler to accept 0rbit Token and add request to GET_REQUESTS ]]
+Handlers.add('postData',
+    isPostRequest,
+    function(Msg)
+        local msgId = Msg.Id
+        local tags = Msg.Tags
+        -- -- check timeperiod /timestamp
+        local recievedFee = bint(tags.Quantity) or bint.zero()
+
+        -- Convert 'tags["X-Min-Fee"]' to a bigint and use '_MIN_FEE' as a default if 'tags["X-Min-Fee"]' is nil
+        local minFee = tags["X-Min-Fee"] and bint(tags["X-Min-Fee"]) or _MIN_FEE
+
+        -- Convert 'tags["X-Max-Fee"]' to a bigint and use '_MAX_FEE' as a default if 'tags["X-Max-Fee"]' is nil
+        local maxFee = tags["X-Max-Fee"] and bint(tags["X-Max-Fee"]) or _MAX_FEE
+
+        local body = Msg.Tags["X-Body"] or nil
+
+        local validFor = tags["X-ValidFor"] or 0
+
+        local sender = tags.Sender
+        local url = tags["X-Url"]
+
+        if IS_ERROR == 1 then
+            Send({
+                Target = sender,
+                Data = Colors.red ..
+                    "MAINTAINANCE: Some issue going on with process" ..
+                    Colors.green ..
+                    " Contact 0RBIT team"
+            })
+            Send({
+                Target = _TOKEN_PROCESS,
+                Action = "Transfer",
+                Recipient = sender,
+                Quantity = utils.toBalanceValue(recievedFee)
+            })
+            return
+        end
+
+        -- -- check url
+        -- if not isValidUrl(url) then
+        --     Send({
+        --         Target = sender,
+        --         Data = Colors.red ..
+        --             "ERROR: URL sent is not valid"
+        --     })
+        --     Send({
+        --         Target = _TOKEN_PROCESS,
+        --         Action = "Transfer",
+        --         Recipient = sender,
+        --         Quantity = utils.toBalanceValue(recievedFee)
+        --     })
+        --     return
+        -- end
+        -- -- Check maxFee with Quantity
+        if utils.lt(recievedFee, maxFee) then
+            Send({
+                Target = sender,
+                Data = Colors.red ..
+                    "ERROR: Transferred less fee than maxFee" ..
+                    Colors.green ..
+                    " Recieved:" ..
+                    utils.toBalanceValue(recievedFee) .. Colors.red .. " Expected:" .. utils.toBalanceValue(maxFee)
+            })
+            Send({
+                Target = _TOKEN_PROCESS,
+                Action = "Transfer",
+                Recipient = sender,
+                Quantity = utils.toBalanceValue(recievedFee)
+            })
+            return
+        end
+
+        POST_REQUESTS[msgId] = {
+            Url = url,
+            MinFee = utils.toBalanceValue(minFee),
+            MaxFee = utils.toBalanceValue(maxFee),
+            ValidFor = validFor,
+            Timestamp = Msg.Timestamp,
+            Recipient = sender,
+            Body = body or nil,
+            Target = ao.id
+        }
+        Send({
+            Target = sender,
+            Data = "Message recieved for url:" .. url
+        })
+
+        table.insert(LOGS, {
+            MessageId = Msg.Id,
+            Recipient = sender,
+        })
+    end
+)
+
+Handlers.add(
+    "dryrunPost",
+    Handlers.utils.hasMatchingTag("Read", "POST_REQUESTS"),
+    function(msg)
+        Handlers.utils.reply(json.encode(POST_REQUESTS))(msg)
+    end
+)
 
 Handlers.add('recieveData',
     Handlers.utils.hasMatchingTag('Action', 'Recieve-Response')
@@ -295,9 +390,7 @@ Handlers.add('recieveData',
             FeeUsed = tags.Fee
             -- add other tags that is needed also add headers
         }
-        -- utils.mergeTables(responseMessage, Msg.Tags)
-        responseMessage["Action"] = "Receive-Data-Feed"
-        responseMessage["content-type"] = "text/html; charset=utf-8"
+        utils.mergeTables(responseMessage, Msg.Tags)
         Send(responseMessage)
         -- Transfer back the remaining amount
         PROCESSED_REQUESTS[requestId] = {
@@ -307,6 +400,7 @@ Handlers.add('recieveData',
             -- TimeTaken = Msg.Timestamp - (request.ValidFor + request.Timestamp)
         }
         GET_REQUESTS[requestId] = nil
+        POST_REQUESTS[requestId] = nil
         table.insert(LOGS, {
             MessageId = Msg.Id,
             Status = "SUCCESS"
@@ -367,12 +461,39 @@ Handlers.add('recieveData',
 --     ["X-Test"] = "456",
 --     ["X-Hello"] = "World"
 -- })
+
+local json = require('json')
 Send({
     Target = "BUhZLMwQ6yZHguLtJYA5lLUa9LQzLXMXRfaq9FVcPJc",
     Action = "Transfer",
-    Recipient =
-    "4_jJUtiNjq5Xrg8OMrEDo-_bud7p5vbSJh1e69VJ76U",
+    Recipient = "4_jJUtiNjq5Xrg8OMrEDo-_bud7p5vbSJh1e69VJ76U",
     Quantity = "1000000000000",
-    ["X-Url"] = "https://lucifer0x17.g8way.0rbit.co",
-    ["X-Action"] = "Get-Real-Data"
+    ["X-Url"] = "https://g8way.0rbit.co/graphql",
+    ["X-Action"] = "Post-Real-Data",
+    ["X-Body"] = json.encode({
+        query = [[
+            query {
+                transactions(
+                    owners: ["vh-NTHVvlKZqRxc8LyyTNok65yQ55a_PJ1zWLb9G2JI"]
+                ) {
+                    edges {
+                        node {
+                            id
+                        }
+                    }
+                }
+            }
+        ]]
+    })
+
+})
+count = 0
+for key, value in pairs(PROCESSED_REQUESTS) do
+    count = count + 1
+end
+
+Send({
+    Target = "W1fgVvCJB2BI0BWOhmvJfN-3-Q-xyglE4Mi5bpmE2n4",
+    Test = "Hi",
+    Data = "Testing assign"
 })
