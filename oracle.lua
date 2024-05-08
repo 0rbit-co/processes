@@ -329,7 +329,7 @@ Handlers.add(
 )
 
 Handlers.add('recieveData',
-    Handlers.utils.hasMatchingTag('Action', 'Recieve-Response')
+    Handlers.utils.hasMatchingTag('Action', 'Receive-Response')
     -- add check for valid node or not
     ,
     function(Msg)
@@ -387,7 +387,7 @@ Handlers.add('recieveData',
         local responseMessage = {
             Target = request.Recipient,
             Data = Msg.Data,
-            FeeUsed = tags.Fee
+            FeeUsed = tags.Fee,
             -- add other tags that is needed also add headers
         }
         utils.mergeTables(responseMessage, Msg.Tags)
