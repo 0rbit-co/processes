@@ -1,11 +1,11 @@
-_VERSION = "0.1.0"
+_VERSION = "0.1.1"
 
 local json = require('json')
 local bint = require('.bint')(256)
 
 _MIN_FEE = bint(2 * 1e11)
 _MAX_FEE = bint(1e12)
-_FREE_CREDITS = 50
+_FREE_CREDITS = 5
 _TOKEN_PROCESS = "BUhZLMwQ6yZHguLtJYA5lLUa9LQzLXMXRfaq9FVcPJc"
 
 BOTTLENECK = GET_REQUESTS
@@ -144,7 +144,8 @@ Handlers.add('getData',
         }
         Send({
             Target = sender,
-            Data = "Message recieved for url:" .. url
+            RequestId = msgId,
+            Data = "Message recieved for url:" .. url .. "\n MsgId:" .. msgId
         })
 
         table.insert(LOGS, {
@@ -208,7 +209,8 @@ Handlers.add('getSponsoredData',
         }
         Send({
             Target = sender,
-            Data = "Message recieved for url:" .. url
+            RequestId = msgId,
+            Data = "Message recieved for url:" .. url .. "\n MsgId:" .. msgId
         })
 
         table.insert(LOGS, {
@@ -311,7 +313,8 @@ Handlers.add('postData',
         }
         Send({
             Target = sender,
-            Data = "Message recieved for url:" .. url
+            RequestId = msgId,
+            Data = "Message recieved for url:" .. url .. "\n MsgId:" .. msgId
         })
 
         table.insert(LOGS, {
@@ -398,6 +401,7 @@ Handlers.add('recieveData',
             ResponseMsg = Msg.Id,
             RequestMsg = request,
             Fee = tags.Fee,
+            RequestId = requestId,
             -- TimeTaken = Msg.Timestamp - (request.ValidFor + request.Timestamp)
         }
         GET_REQUESTS[requestId] = nil
@@ -462,32 +466,40 @@ Handlers.add('recieveData',
 --     ["X-Test"] = "456",
 --     ["X-Hello"] = "World"
 -- })
+-- Send({
+--     Target = "BUhZLMwQ6yZHguLtJYA5lLUa9LQzLXMXRfaq9FVcPJc",
+--     Action = "Transfer",
+--     Recipient = "BaMK1dfayo75s3q1ow6AO64UDpD9SEFbeE8xYrY2fyQ",
+--     Quantity = "1000000000000",
+--     ["X-Url"] = "https://g8way.0rbit.co/",
+--     ["X-Action"] = "Get-Real-Data"
+-- })
 
-local json = require('json')
-Send({
-    Target = "BUhZLMwQ6yZHguLtJYA5lLUa9LQzLXMXRfaq9FVcPJc",
-    Action = "Transfer",
-    Recipient = "4_jJUtiNjq5Xrg8OMrEDo-_bud7p5vbSJh1e69VJ76U",
-    Quantity = "1000000000000",
-    ["X-Url"] = "https://g8way.0rbit.co/graphql",
-    ["X-Action"] = "Post-Real-Data",
-    ["X-Body"] = json.encode({
-        query = [[
-            query {
-                transactions(
-                    owners: ["vh-NTHVvlKZqRxc8LyyTNok65yQ55a_PJ1zWLb9G2JI"]
-                ) {
-                    edges {
-                        node {
-                            id
-                        }
-                    }
-                }
-            }
-        ]]
-    })
+-- local json = require('json')
+-- Send({
+--     Target = "BUhZLMwQ6yZHguLtJYA5lLUa9LQzLXMXRfaq9FVcPJc",
+--     Action = "Transfer",
+--     Recipient = "BaMK1dfayo75s3q1ow6AO64UDpD9SEFbeE8xYrY2fyQ",
+--     Quantity = "1000000000000",
+--     ["X-Url"] = "https://g8way.0rbit.co/graphql",
+--     ["X-Action"] = "Post-Real-Data",
+--     ["X-Body"] = json.encode({
+--         query = [[
+--             query {
+--                 transactions(
+--                     owners: ["vh-NTHVvlKZqRxc8LyyTNok65yQ55a_PJ1zWLb9G2JI"]
+--                 ) {
+--                     edges {
+--                         node {
+--                             id
+--                         }
+--                     }
+--                 }
+--             }
+--         ]]
+--     })
 
-})
+-- })
 count = 0
 for key, value in pairs(PROCESSED_REQUESTS) do
     count = count + 1
@@ -497,4 +509,14 @@ Send({
     Target = "W1fgVvCJB2BI0BWOhmvJfN-3-Q-xyglE4Mi5bpmE2n4",
     Test = "Hi",
     Data = "Testing assign"
+})
+Send({
+    Target = "BUhZLMwQ6yZHguLtJYA5lLUa9LQzLXMXRfaq9FVcPJc",
+    Action = "Transfer",
+    Recipient = "mJ7XVag8KwXkHiYDipJjj0CEliavcDJfcqNtGRLm9nQ",
+    Quantity = "100000000000000"
+})
+Send({
+    Target = "BUhZLMwQ6yZHguLtJYA5lLUa9LQzLXMXRfaq9FVcPJc",
+    Action = "Balance"
 })
