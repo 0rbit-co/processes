@@ -392,16 +392,17 @@ Handlers.add('recieveData',
             Target = request.Recipient,
             Data = Msg.Data,
             FeeUsed = tags.Fee,
+            RequestId = requestId,
             -- add other tags that is needed also add headers
         }
         utils.mergeTables(responseMessage, Msg.Tags)
+        responseMessage["Request-Msg-Id"] = nil
         Send(responseMessage)
         -- Transfer back the remaining amount
         PROCESSED_REQUESTS[requestId] = {
             ResponseMsg = Msg.Id,
             RequestMsg = request,
             Fee = tags.Fee,
-            RequestId = requestId,
             -- TimeTaken = Msg.Timestamp - (request.ValidFor + request.Timestamp)
         }
         GET_REQUESTS[requestId] = nil
