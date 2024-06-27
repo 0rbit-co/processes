@@ -79,6 +79,7 @@ Handlers.add('getData',
         -- -- check timeperiod /timestamp
         local recievedFee = bint(tags.Quantity) or bint.zero()
         -- local minFee = bint(tags["X-Min-Fee"]) or _MIN_FEE
+        local headers = Msg.Tags["X-Headers"] or nil
         local minFee
         if tags["X-Min-Fee"] ~= nil then
             minFee = bint(tags["X-Min-Fee"])
@@ -140,71 +141,7 @@ Handlers.add('getData',
             ValidFor = validFor,
             Timestamp = Msg.Timestamp,
             Recipient = sender,
-            Target = ao.id
-        }
-        Send({
-            Target = sender,
-            RequestId = msgId,
-            Data = "Message recieved for url:" .. url .. "\n MsgId:" .. msgId
-        })
-
-        table.insert(LOGS, {
-            MessageId = Msg.Id,
-            Recipient = sender,
-        })
-    end
-)
-
-Handlers.add('getSponsoredData',
-    Handlers.utils.hasMatchingTag("Action", "Get-Real-Data"),
-    function(Msg)
-        local msgId = Msg.Id
-        local tags = Msg.Tags
-        -- local minFee = bint(tags["X-Min-Fee"]) or _MIN_FEE
-        local minFee = _MIN_FEE
-        -- local maxFee = bint(tags["X-Max-Fee"]) or _MAX_FEE
-        local maxFee = _MAX_FEE
-
-        -- -- TODO: check timeperiod /timestamp
-        local validFor = tags["ValidFor"] or 0
-
-        local sender = Msg.From
-        local url = tags["Url"]
-
-        if IS_ERROR == 1 then
-            Send({
-                Target = sender,
-                Data = Colors.red ..
-                    "MAINTAINANCE: Some issue going on with process" ..
-                    Colors.green ..
-                    " Contact 0RBIT team"
-            })
-            return
-        end
-
-        -- -- TODO: add handler to Check Free requests
-        if sender then
-            if FREE_QUOTA[sender] and FREE_QUOTA[sender] <= 0 then
-                Handlers.utils.reply("Free Quota has been completed. Contact the team for more requests")(Msg)
-                return
-            elseif not FREE_QUOTA[sender] then
-                FREE_QUOTA[sender] = 50
-            end
-
-            FREE_QUOTA[sender] = FREE_QUOTA[sender] - 1
-        else
-            print("Error: Sender is nil.")
-            Handlers.utils.reply("No sender found")(Msg)
-            return
-        end
-
-        GET_REQUESTS[msgId] = {
-            Url = url,
-            MinFee = utils.toBalanceValue(minFee),
-            MaxFee = utils.toBalanceValue(maxFee),
-            ValidFor = validFor,
-            Timestamp = Msg.Timestamp,
-            Recipient = sender,
+            Headers = headers or nil,
             Target = ao.id
         }
         Send({
@@ -236,6 +173,7 @@ Handlers.add('postData',
         local tags = Msg.Tags
         -- -- check timeperiod /timestamp
         local recievedFee = bint(tags.Quantity) or bint.zero()
+        local headers = Msg.Tags["X-Headers"] or nil
 
         -- Convert 'tags["X-Min-Fee"]' to a bigint and use '_MIN_FEE' as a default if 'tags["X-Min-Fee"]' is nil
         local minFee = tags["X-Min-Fee"] and bint(tags["X-Min-Fee"]) or _MIN_FEE
@@ -309,6 +247,7 @@ Handlers.add('postData',
             Timestamp = Msg.Timestamp,
             Recipient = sender,
             Body = body or nil,
+            Headers = headers or nil,
             Target = ao.id
         }
         Send({
