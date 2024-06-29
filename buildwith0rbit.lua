@@ -18,7 +18,7 @@ function _whitelistCheck(msg)
 end
 
 function addToWhitelist(msg)
-    if msg.From ~= Owner then
+    if msg.From ~= ao.id then
         Handlers.utils.reply(Colors.red ..
             "You are not authorized to perform this action.")(msg)
         return
