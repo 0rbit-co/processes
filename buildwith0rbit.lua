@@ -3,37 +3,16 @@
 -- dev: @megabyte0x
 
 Requests = Requests or {}
-WHITELISTED_ADDRESSES = WHITELISTED_ADDRESSES or {
-    "Pw6aamwaKdmlkgKMNLX1ekzvyBPO8r-S4QhIpL34QVw"
-}
+
 ACCEPTED_REQUESTS = ACCEPTED_REQUESTS or {}
 
-function _whitelistCheck(msg)
-    if (WHITELISTED_ADDRESSES[msg.From] == nil) then
+function _ownerCheck(msg)
+    if (msg.From ~= ao.id) then
         Handlers.utils.reply(Colors.red ..
             "You are not authorized to perform this action.")(msg)
         return false
     end
     return true
-end
-
-function addToWhitelist(msg)
-    if msg.From ~= ao.id then
-        Handlers.utils.reply(Colors.red ..
-            "You are not authorized to perform this action.")(msg)
-        return
-    end
-
-    local address = msg.Address
-    if (WHITELISTED_ADDRESSES[address] ~= nil) then
-        Handlers.utils.reply(Colors.red ..
-            "Address is already whitelisted.")(msg)
-        return
-    end
-
-    table.insert(WHITELISTED_ADDRESSES, address)
-    Handlers.utils.reply(Colors.green ..
-        "Address has been added to the whitelist.")(msg)
 end
 
 function addRequest(msg)
@@ -76,11 +55,11 @@ function addRequest(msg)
 end
 
 function rejectRequest(msg)
-    if not _whitelistCheck(msg) then
+    if not _ownerCheck(msg) then
         return
     end
 
-    local requestId = msg.requestId
+    local requestId = msg.RequestId
     if not Requests[requestId] then
         Handlers.utils.reply(Colors.red ..
             "No request found with the given ID.")(msg)
@@ -93,11 +72,11 @@ function rejectRequest(msg)
 end
 
 function acceptRequest(msg)
-    if not _whitelistCheck(msg) then
+    if not _ownerCheck(msg) then
         return
     end
 
-    local requestId = msg.requestId
+    local requestId = msg.RequestId
     if not Requests[requestId] then
         Handlers.utils.reply(Colors.red ..
             "No request found with the given ID.")(msg)
@@ -114,11 +93,11 @@ function acceptRequest(msg)
 end
 
 function deleteRequest(msg)
-    if not _whitelistCheck(msg) then
+    if not _ownerCheck(msg) then
         return
     end
 
-    local requestId = msg.requestId
+    local requestId = msg.RequestId
     if not Requests[requestId] then
         Handlers.utils.reply(Colors.red ..
             "No request found with the given ID.")(msg)
@@ -172,12 +151,6 @@ Handlers.add(
     "DeleteRequest",
     Handlers.utils.hasMatchingTag("Action", "Delete-Request"),
     deleteRequest
-)
-
-Handlers.add(
-    "AddToWhitelist",
-    Handlers.utils.hasMatchingTag("Action", "Add-To-Whitelist"),
-    addToWhitelist
 )
 
 Handlers.add(
