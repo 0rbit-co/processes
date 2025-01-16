@@ -1,5 +1,4 @@
 local bint = require('.bint')(256)
-local ao = require('ao')
 
 --[[
   This module implements the ao Standard Token Specification.
@@ -47,7 +46,7 @@ local utils = {
    ]]
 --
 
-if Name ~= '0rbit Token' then Name = '0rbit Token' end
+if Name ~= '0rbit Points' then Name = '0rbit Points' end
 
 if Ticker ~= '0RBT' then Ticker = '0RBT' end
 
@@ -68,7 +67,7 @@ Balances = Balances or { [ao.id] = utils.toBalanceValue(10000 * 1e12) }
    ]]
 --
 Handlers.add('info', Handlers.utils.hasMatchingTag('Action', 'Info'), function(msg)
-    ao.send({
+    Send({
         Target = msg.From,
         Name = Name,
         Ticker = Ticker,
@@ -91,7 +90,7 @@ Handlers.add('balance', Handlers.utils.hasMatchingTag('Action', 'Balance'), func
         bal = Balances[msg.From]
     end
 
-    ao.send({
+    Send({
         Target = msg.From,
         Balance = bal,
         Ticker = Ticker,
@@ -105,7 +104,7 @@ end)
    ]]
 --
 Handlers.add('balances', Handlers.utils.hasMatchingTag('Action', 'Balances'),
-    function(msg) ao.send({ Target = msg.From, Data = json.encode(Balances) }) end)
+    function(msg) Send({ Target = msg.From, Data = json.encode(Balances) }) end)
 
 --[[
      Transfer
@@ -161,11 +160,11 @@ Handlers.add('transfer', Handlers.utils.hasMatchingTag('Action', 'Transfer'), fu
             end
 
             -- Send Debit-Notice and Credit-Notice
-            ao.send(debitNotice)
-            ao.send(creditNotice)
+            Send(debitNotice)
+            Send(creditNotice)
         end
     else
-        ao.send({
+        Send({
             Target = msg.From,
             Action = 'Transfer-Error',
             ['Message-Id'] = msg.Id,
@@ -187,12 +186,12 @@ Handlers.add('mint', Handlers.utils.hasMatchingTag('Action', 'Mint'), function(m
     if msg.From == ao.id then
         -- Add tokens to the token pool, according to Quantity
         Balances[msg.From] = utils.add(Balances[msg.From], msg.Quantity)
-        ao.send({
+        Send({
             Target = msg.From,
             Data = Colors.gray .. "Successfully minted " .. Colors.blue .. msg.Quantity .. Colors.reset
         })
     else
-        ao.send({
+        Send({
             Target = msg.From,
             Action = 'Mint-Error',
             ['Message-Id'] = msg.Id,
@@ -213,7 +212,7 @@ Handlers.add('totalSupply', Handlers.utils.hasMatchingTag('Action', 'Total-Suppl
         totalSupply = utils.add(totalSupply, balance)
     end
 
-    ao.send({
+    Send({
         Target = msg.From,
         Action = 'Total-Supply',
         Data = tostring(totalSupply),
